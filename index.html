@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asesmen Matematika SMA</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --danger: #dc2626;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 0.95rem; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; }
+        input[type="text"], select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; }
+        .btn { display: inline-block; background: var(--primary); color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn:hover { background: var(--primary-hover); }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+        .question-card { border: 1px solid var(--border); padding: 20px; border-radius: 8px; margin-bottom: 20px; background: #fff; }
+        .q-number { font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
+        .options { display: flex; gap: 15px; margin-top: 15px; }
+        .option-label { flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 8px; text-align: center; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .option-label:hover { border-color: var(--primary); background: #eff6ff; }
+        input[type="radio"] { display: none; }
+        input[type="radio"]:checked + .option-label { background: var(--primary); color: white; border-color: var(--primary); }
+        .hidden { display: none; }
+        
+        /* Hasil & Pembahasan */
+        .score-box { text-align: center; padding: 25px; background: #eff6ff; border-radius: 10px; margin-bottom: 30px; border: 2px solid var(--primary); }
+        .score-number { font-size: 3rem; font-weight: bold; color: var(--primary); margin: 10px 0; }
+        .review-card { border-left: 5px solid #ccc; padding: 15px; margin-bottom: 15px; background: #f8fafc; border-radius: 0 8px 8px 0; }
+        .review-correct { border-left-color: var(--success); background: #f0fdf4; }
+        .review-wrong { border-left-color: var(--danger); background: #fef2f2; }
+        .explanation { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1; font-size: 0.95rem; color: #334155; }
+        .status-msg { text-align: center; font-weight: bold; margin-top: 10px; padding: 10px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Asesmen Matematika SMA</h1>
+    <p class="subtitle">Tipe Soal: Benar / Salah | Jumlah: 30 Soal</p>
+
+    <!-- Halaman Identitas -->
+    <div id="intro-section">
+        <div class="form-group">
+            <label for="student-name">Nama Lengkap Siswa</label>
+            <input type="text" id="student-name" placeholder="Masukkan nama lengkap Anda..." required>
+        </div>
+        <div class="form-group">
+            <label for="student-class">Kelas</label>
+            <select id="student-class">
+                <option value="X IPA / Fase E">Kelas X (Fase E)</option>
+                <option value="XI IPA / Fase F">Kelas XI (Fase F)</option>
+                <option value="XII IPA / Fase F">Kelas XII (Fase F)</option>
+            </select>
+        </div>
+        <button class="btn" onclick="startQuiz()">Mulai Mengerjakan Asesmen</button>
+    </div>
+
+    <!-- Halaman Soal -->
+    <div id="quiz-section" class="hidden">
+        <div id="questions-container"></div>
+        <button class="btn" id="submit-btn" onclick="submitQuiz()">Kirim Jawaban & Lihat Hasil</button>
+        <div id="loading-msg" class="status-msg hidden">Sedang mengirim hasil ke email guru...</div>
+    </div>
+
+    <!-- Halaman Hasil -->
+    <div id="result-section" class="hidden">
+        <div class="score-box">
+            <div>Skor Akhir Anda:</div>
+            <div class="score-number" id="final-score">0</div>
+            <div id="student-info-display"></div>
+            <div id="email-status" class="status-msg"></div>
+        </div>
+        <h3>Pembahasan Soal</h3>
+        <div id="review-container"></div>
+    </div>
+</div>
+
+<script>
+    // =========================================================================
+    // MASUKKAN URL FORMSPREE ANDA DI BAWAH INI
+    // =========================================================================
+    const FORMSPREE_URL = "GANTI_DENGAN_URL_FORMSPREE_ANDA"; 
+
+    // Bank 30 Soal Matematika SMA (Benar / Salah)
+    const questions = [
+        { q: "Nilai dari 2³ × 2⁴ adalah 128.", a: true, exp: "Berdasarkan sifat eksponen, aᵐ × aⁿ = aᵐ⁺ⁿ. Maka 2³ × 2⁴ = 2⁷ = 128." },
+        { q: "Jika ³log(x) = 2, maka nilai x adalah 6.", a: false, exp: "³log(x) = 2 berarti x = 3² = 9, bukan 6." },
+        { q: "Akar-akar dari persamaan kuadrat x² - 5x + 6 = 0 adalah 2 dan 3.", a: true, exp: "Jika difaktorkan menjadi (x - 2)(x - 3) = 0, sehingga x = 2 atau x = 3." },
+        { q: "Grafik fungsi kuadrat f(x) = -2x² + 4x - 1 terbuka ke atas.", a: false, exp: "Karena koefisien x² (a = -2) bernilai negatif (a < 0), maka parabola terbuka ke bawah." },
+        { q: "Nilai maksimum dari fungsi f(x) = sin(x) pada interval 0° ≤ x ≤ 360° adalah 1.", a: true, exp: "Nilai fungsi sinus berkisar antara -1 hingga 1, dengan nilai maksimum 1 pada sudut 90°." },
+        { q: "Nilai dari cos(60°) sama dengan nilai dari sin(30°).", a: true, exp: "Keduanya bernilai 1/2 (0,5) karena merupakan sudut yang saling berpenyiku." },
+        { q: "Suku ke-10 dari barisan aritmetika 2, 5, 8, 11, ... adalah 29.", a: true, exp: "Uₙ = a + (n - 1)b → U₁₀ = 2 + (9 × 3) = 2 + 27 = 29." },
+        { q: "Jumlah tak hingga deret geometri 8 + 4 + 2 + 1 + ... adalah 16.", a: true, exp: "S∞ = a / (1 - r) = 8 / (1 - 1/2) = 8 / (1/2) = 16." },
+        { q: "Turunan pertama dari f(x) = 4x³ - 2x + 5 adalah f'(x) = 12x² - 2.", a: true, exp: "Menggunakan aturan pangkat: 4(3x²) - 2(1) + 0 = 12x² - 2." },
+        { q: "Nilai dari lim (x→2) dari (x² - 4) / (x - 2) adalah 0.", a: false, exp: "Faktorkan pembilang menjadi (x - 2)(x + 2), lalu coret (x - 2). Substitusi x = 2 menghasilkan 2 + 2 = 4." },
+        { q: "Hasil dari integral tak tentu ∫ 3x² dx adalah x³ + C.", a: true, exp: "∫ 3x² dx = (3 / (2+1))x²⁺¹ + C = x³ + C." },
+        { q: "Determinan dari matriks A = [[3, 2], [1, 4]] adalah 10.", a: true, exp: "det(A) = (3 × 4) - (2 × 1) = 12 - 2 = 10." },
+        { q: "Sebuah matriks tidak memiliki invers jika determinannya sama dengan 1.", a: false, exp: "Matriks tidak memiliki invers (matriks singular) jika determinannya sama dengan 0." },
+        { q: "Peluang munculnya mata dadu berjumlah 7 pada pelemparan dua buah dadu sekaligus adalah 1/6.", a: true, exp: "Kombinasi berjumlah 7 ada 6: (1,6),(2,5),(3,4),(4,3),(5,2),(6,1). Ruang sampel = 36. Peluang = 6/36 = 1/6." },
+        { q: "Banyaknya susunan kata yang dapat dibentuk dari kata 'MATA' adalah 24 susunan.", a: false, exp: "Terdapat 4 huruf dengan 2 huruf 'A' yang sama. Maka 4! / 2! = 24 / 2 = 12 susunan." },
+        { q: "Nilai dari 5! (5 faktorial) adalah 120.", a: true, exp: "5! = 5 × 4 × 3 × 2 × 1 = 120." },
+        { q: "Modus dari data: 4, 5, 6, 6, 7, 8, 8, 8, 9 adalah 7.", a: false, exp: "Modus adalah nilai yang paling sering muncul, yaitu 8 (muncul 3 kali). 7 adalah mediannya." },
+        { q: "Jarak antara titik A(1, 2) dan titik B(4, 6) pada bidang Kartesius adalah 5 satuan.", a: true, exp: "d = √((4-1)² + (6-2)²) = √(3² + 4²) = √(9 + 16) = √25 = 5." },
+        { q: "Persamaan lingkaran yang berpusat di (0, 0) dan berjari-jari 4 adalah x² + y² = 4.", a: false, exp: "Rumus persamaan lingkaran pusat (0,0) adalah x² + y² = r². Jika r = 4, maka x² + y² = 16." },
+        { q: "Garis y = 2x + 3 sejajar dengan garis y = 2x - 7.", a: true, exp: "Dua garis sejajar jika memiliki gradien (m) yang sama. Keduanya memiliki gradien m = 2." },
+        { q: "Jika f(x) = 2x + 1 dan g(x) = x - 3, maka (f ∘ g)(2) adalah -1.", a: true, exp: "g(2) = 2 - 3 = -1. Kemudian f(-1) = 2(-1) + 1 = -2 + 1 = -1." },
+        { q: "Invers dari fungsi f(x) = x + 5 adalah f⁻¹(x) = x - 5.", a: true, exp: "y = x + 5 → x = y - 5, sehingga f⁻¹(x) = x - 5." },
+        { q: "Himpunan penyelesaian dari pertidaksamaan 2x - 4 > 6 adalah x > 5.", a: true, exp: "2x > 6 + 4 → 2x > 10 → x > 5." },
+        { q: "Nilai mutlak |-7| + |3 - 8| menghasilkan nilai 2.", a: false, exp: "|-7| = 7 dan |-5| = 5. Maka 7 + 5 = 12. Nilai mutlak selalu positif." },
+        { q: "Dalam segitiga siku-siku, jika panjang sisi tegaknya 6 cm dan 8 cm, maka sisi miringnya 10 cm.", a: true, exp: "Teorema Pythagoras: √(6² + 8²) = √(36 + 64) = √100 = 10 cm." },
+        { q: "Besar sudut 1/2 π radian setara dengan 180°.", a: false, exp: "π radian = 180°, sehingga 1/2 π radian = 90°." },
+        { q: "Logaritma ²log(8) + ²log(4) menghasilkan nilai 5.", a: true, exp: "²log(8 × 4) = ²log(32) = 5 (karena 2⁵ = 32)." },
+        { q: "Vektor a = (3, -4) memiliki panjang (modulus) sebesar 5.", a: true, exp: "|a| = √(3² + (-4)²) = √(9 + 16) = 5." },
+        { q: "Titik potong sumbu-Y dari fungsi linear f(x) = 3x - 6 adalah (0, 6).", a: false, exp: "Titik potong sumbu-Y terjadi saat x = 0 → f(0) = 3(0) - 6 = -6. Titiknya adalah (0, -6)." },
+        { q: "Jika peluang hujan hari ini adalah 0,35, maka peluang tidak hujan adalah 0,65.", a: true, exp: "Peluang komplemen P(A') = 1 - P(A) = 1 - 0,35 = 0,65." }
+    ];
+
+    function startQuiz() {
+        const name = document.getElementById('student-name').value.trim();
+        if (!name) {
+            alert("Silakan masukkan nama lengkap Anda terlebih dahulu.");
+            return;
+        }
+        document.getElementById('intro-section').classList.add('hidden');
+        document.getElementById('quiz-section').classList.remove('hidden');
+        renderQuestions();
+    }
+
+    function renderQuestions() {
+        const container = document.getElementById('questions-container');
+        container.innerHTML = '';
+        questions.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            card.innerHTML = `
+                <span class="q-number">Soal ${index + 1} dari ${questions.length}</span>
+                <div>${item.q}</div>
+                <div class="options">
+                    <input type="radio" name="q${index}" id="q${index}_true" value="true">
+                    <label for="q${index}_true" class="option-label">BENAR</label>
+                    
+                    <input type="radio" name="q${index}" id="q${index}_false" value="false">
+                    <label for="q${index}_false" class="option-label">SALAH</label>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    async function submitQuiz() {
+        const name = document.getElementById('student-name').value.trim();
+        const studentClass = document.getElementById('student-class').value;
+        let scoreCount = 0;
+        let answersSummary = [];
+
+        // Cek apakah semua soal sudah dijawab
+        for (let i = 0; i < questions.length; i++) {
+            const selected = document.querySelector(`input[name="q${i}"]:checked`);
+            if (!selected) {
+                alert(`Soal nomor ${i + 1} belum dijawab! Harap lengkapi semua jawaban.`);
+                document.getElementsByClassName('question-card')[i].scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+        }
+
+        // Hitung skor dan siapkan pembahasan
+        const reviewContainer = document.getElementById('review-container');
+        reviewContainer.innerHTML = '';
+
+        questions.forEach((item, index) => {
+            const selectedVal = document.querySelector(`input[name="q${index}"]:checked`).value === 'true';
+            const isCorrect = selectedVal === item.a;
+            if (isCorrect) scoreCount++;
+
+            answersSummary.push(`No.${index+1}: ${selectedVal ? 'Benar' : 'Salah'} (${isCorrect ? 'Tepat' : 'Keliru'})`);
+
+            const revCard = document.createElement('div');
+            revCard.className = `review-card ${isCorrect ? 'review-correct' : 'review-wrong'}`;
+            revCard.innerHTML = `
+                <strong>Soal ${index + 1}:</strong> ${item.q}<br>
+                <span>Jawaban Anda: <b>${selectedVal ? 'BENAR' : 'SALAH'}</b> | Kunci: <b>${item.a ? 'BENAR' : 'SALAH'}</b></span>
+                <div class="explanation">💡 <strong>Penjelasan:</strong> ${item.exp}</div>
+            `;
+            reviewContainer.appendChild(revCard);
+        });
+
+        const finalScore = Math.round((scoreCount / questions.length) * 100);
+
+        // Kirim data ke Email via Formspree
+        const submitBtn = document.getElementById('submit-btn');
+        const loadingMsg = document.getElementById('loading-msg');
+        submitBtn.disabled = true;
+        loadingMsg.classList.remove('hidden');
+
+        const emailStatus = document.getElementById('email-status');
+
+        if (FORMSPREE_URL === "GANTI_DENGAN_URL_FORMSPREE_ANDA" || !FORMSPREE_URL) {
+            emailStatus.innerHTML = "⚠️ Hasil tidak terkirim ke email (URL Formspree belum diatur).";
+            emailStatus.style.color = "#b45309";
+        } else {
+            try {
+                const response = await fetch(FORMSPREE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        Nama_Siswa: name,
+                        Kelas: studentClass,
+                        Skor_Akhir: `${finalScore} / 100 (${scoreCount} dari ${questions.length} benar)`,
+                        Detail_Jawaban: answersSummary.join(' | ')
+                    })
+                });
+                if (response.ok) {
+                    emailStatus.innerHTML = "✅ Hasil asesmen berhasil dikirim ke email guru!";
+                    emailStatus.style.color = "var(--success)";
+                } else {
+                    throw new Error("Gagal mengirim");
+                }
+            } catch (error) {
+                emailStatus.innerHTML = "❌ Gagal mengirim laporan ke email, namun nilai Anda sudah terekam di layar ini.";
+                emailStatus.style.color = "var(--danger)";
+            }
+        }
+
+        // Tampilkan Halaman Hasil
+        document.getElementById('quiz-section').classList.add('hidden');
+        document.getElementById('result-section').classList.remove('hidden');
+        document.getElementById('final-score').innerText = finalScore;
+        document.getElementById('student-info-display').innerText = `${name} — ${studentClass} (Benar: ${scoreCount}/${questions.length})`;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
